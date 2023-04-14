@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<!-- Exempel för DSD400-kursen på JSON-AJAX, Thomas Lundqvist, 2020, use freely!
+-->
+<html>
+  <head>
+    <title>Enkelt test av JSON AJAX</title>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+      .sort-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-size: 16px;
+        font-weight: normal;
+        color: rgb(132, 120, 60);
+      }
+    </style>    
+  </head>
+<body>
+  <h1 id="rubrik">Prisoners:</h1>
+  <table id="mintabell">
+    <thead>
+       <tr>
+          <td>BirthID <button class="sort-button" id="sortBirthID">↑↓</button></td>
+          <td>Name <button class="sort-button" id="sortName">↑↓</button></td>
+          <td>Age <button class="sort-button" id="sortAge">↑↓</button></td>
+          <td>Gender <button class="sort-button" id="sortGender">↑↓</button></td>
+       </tr>
+    </thead>
+    <tbody id="prisonerList">
+    </tbody>
+  </table>
+  <p id="text"></p>
+  <button id="testButton" type="button">Nästa Fånge</button>
+
+  <h2 id="rubrik">Add new prisoners:</h2>
+  <form action="javascript:skicka()">
+    <label for="name">BirthID / Name / Age / Gender: </label>
+    <input type="text" name="name" id="PushBirthID">
+    <input type="text" name="name" id="PushName">
+    <input type="text" name="name" id="PushAge">
+    <input type="text" name="name" id="PushGender">
+    <button>Skicka</button>
+   </form>
+
+
+   <script>
+    var myArr;
+    var originalData;
+    var MyArrIndex = -1;
+
+
+    // Add sortToggle function here
+    
+    var currentSort = {
+      column: '',
+      direction: 0
+    };
+    
+    function updateArrowStyles() {
+  const sortButtons = [
+    { id: 'sortBirthID', column: 'BirthID' },
+    { id: 'sortName', column: 'Name' },
+    { id: 'sortAge', column: 'Age' },
+    { id: 'sortGender', column: 'Gender' },
+  ];
+
+  sortButtons.forEach(({ id, column }) => {
+    const button = document.getElementById(id);
+    if (currentSort.column === column) {
+      button.style.fontWeight = 'bold';
+      if (currentSort.direction === 1) {
+        button.textContent = '↓';
+      } else if (currentSort.direction === 2) {
+        button.textContent = '↑';
+      } else {
+        button.textContent = '↑↓';
+      }
+    } else {
+      button.style.fontWeight = 'normal';
+      button.textContent = '↑↓';
+    }
+  });
+}
+
+function sortToggle(column, data) {
+  if (currentSort.column === column) {
+    currentSort.direction = (currentSort.direction + 1) % 3;
+  } else {
+    currentSort.column = column;
+    currentSort.direction = 1;
+  }
+
+  let sortedData;
+  if (currentSort.direction === 0) {
+    sortedData = originalData.slice(); // Use the original data for reset
+  } else {
+    sortedData = data.sort((a, b) => {
+      let valA, valB;
+      if (column === 'Name') {
+        valA = a.name.toLowerCase();
+        valB = b.name.toLowerCase();
+      } else {
+        if (column === 'BirthID') {
+          valA = a.BirthID;
+          valB = b.BirthID;
+        } else {
+          valA = a[column.toLowerCase()];
+          valB = b[column.toLowerCase()];
+        }
+
+        // Convert BirthID to a number before comparison
+        if (column === 'BirthID') {
+          valA = parseInt(valA, 10);
+          valB = parseInt(valB, 10);
+        }
+      }
+
+      if (valA < valB) {
+        return currentSort.direction === 1 ? -1 : 1;
+      }
+      if (valA > valB) {
+        return currentSort.direction === 1 ? 1 : -1;
+      }
+      return 0;
+    });
+  }
+
+  // Update the table with sorted data
+  displayPrisoners(sortedData);
+
+  // Call updateArrowStyles only once at the end of the function
+  updateArrowStyles();
+}
+
+
+    
+    // Replace handleResponse with this function
+    function displayPrisoners(prisoners) {
+      var prisonerListElem = document.getElementById("prisonerList");
+      prisonerListElem.innerHTML = ''; // Clear the previous prisoner list
+    
+      prisoners.forEach(prisoner => {
+        let row = document.createElement('tr');
+    
+        let birthIDCell = document.createElement('td');
+        birthIDCell.textContent = prisoner.BirthID;
+        row.appendChild(birthIDCell);
+    
+        let nameCell = document.createElement('td');
+        nameCell.textContent = prisoner.name;
+        row.appendChild(nameCell);
+    
+        let ageCell = document.createElement('td');
+        ageCell.textContent = prisoner.age;
+        row.appendChild(ageCell);
+    
+        let genderCell = document.createElement('td');
+        genderCell.textContent = prisoner.gender;
+        row.appendChild(genderCell);
+    
+        prisonerListElem.appendChild(row);
+      });
+    }
+    
+    // Rest of your code
+    
+    (function() {
+      var httpRequest;
+      document.getElementById("testButton").addEventListener('click', makeRequest);
+    
+      // Körs när man trycker på knappen, skicka förfrågan
+      function makeRequest() {
+        MyArrIndex += 1;
+        httpRequest = new XMLHttpRequest();
+        
+        if (!httpRequest) {
+          alert('Giving up :( Cannot create an XMLHTTP instance');
+          return false;
+        }
+        httpRequest.onreadystatechange = handleResponse;
+        httpRequest.open('GET', '/api/getprisoner');
+        httpRequest.send();
+      }
+      
+      // Ta hand om JSON-svaret från servern
+      function handleResponse() {
+        if (httpRequest.readyState === 4 && httpRequest.status === 200) {
+          myArr = JSON.parse(httpRequest.responseText);
+          originalData = myArr.slice(); // Save a copy of the original data
+          displayPrisoners(myArr);
+        }
+      }
+
+    
+      // Add event listeners for sorting buttons
+      document.getElementById("sortBirthID").addEventListener("click", () => sortToggle("BirthID", myArr));
+      document.getElementById("sortName").addEventListener("click", () => sortToggle("Name", myArr));
+      document.getElementById("sortAge").addEventListener("click", () => sortToggle("Age", myArr));
+      document.getElementById("sortGender").addEventListener("click", () => sortToggle("Gender", myArr));
+    
+})(); 
+</script>    
+</body>
+</html>
