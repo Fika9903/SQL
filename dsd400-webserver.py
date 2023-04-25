@@ -13,7 +13,7 @@ import pprint
 import mimetypes
 
 
-INTERFACES = '192.168.1.99'
+INTERFACES = 'localhost'
 PORT = 8020
 
 # This class will handle any incoming GET requests
